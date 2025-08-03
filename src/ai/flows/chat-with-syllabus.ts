@@ -36,12 +36,11 @@ const ChatWithSyllabusOutputSchema = z.object({
 });
 export type ChatWithSyllabusOutput = z.infer<typeof ChatWithSyllabusOutputSchema>;
 
-// The main function that will be called from the frontend
 export async function chatWithSyllabus(input: ChatWithSyllabusInput): Promise<ChatWithSyllabusOutput> {
   return chatWithSyllabusFlow(input);
 }
 
-// Define the Genkit flow for the chat functionality
+
 const chatWithSyllabusFlow = ai.defineFlow(
   {
     name: 'chatWithSyllabusFlow',

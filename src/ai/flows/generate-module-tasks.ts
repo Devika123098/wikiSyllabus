@@ -1,52 +1,68 @@
-// frontend/src/ai/flows/generate-module-tasks.ts
+
 'use server';
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
-
-/**
- * @fileOverview An AI agent that generates learning tasks and real-world applications for a given module content.
- *
- * - generateModuleTasks - A function that handles the task and application generation process.
- * - GenerateModuleTasksInput - The input type for the generateModuleTasks function.
- * - GenerateModuleTasksOutput - The return type for the generateModuleTasks function.
- */
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
 
 const GenerateModuleTasksInputSchema = z.object({
-  moduleContent: z
-    .string()
-    .describe('The text content of the syllabus module to generate tasks and applications for.'),
-  moduleTitle: z
-    .string()
-    .describe('The title of the syllabus module.'),
+  moduleContent: z.string().describe('The text content of the syllabus module to generate tasks and applications for.'),
+  moduleTitle: z.string().describe('The title of the syllabus module.'),
 });
 export type GenerateModuleTasksInput = z.infer<typeof GenerateModuleTasksInputSchema>;
 
 const GenerateModuleTasksOutputSchema = z.object({
-  introductoryMessage: z.string().describe("A welcoming, introductory message that includes the module title and a brief overview of what the user can expect, including learning tasks and real-world applications."),
+  introductoryMessage: z.string().describe(
+    "A welcoming, introductory message including module title, overview, 2-4 learning tasks, and 2-3 real-world applications (markdown formatted)."
+  ),
+  calibrateQuestions: z.array(z.string()).describe("2-3 questions to gauge learner's level and goals."),
+  plan: z.array(z.string()).describe("A short plan (3-5 steps) for approaching the module."),
+  teachingExplanation: z.string().describe("A brief explanation of the core ideas."),
+  guidingQuestion: z.string().describe("An open-ended guiding question after the teaching explanation."),
+  practiceProblem: z.string().describe("One practice problem for the learner (do not provide solution yet)."),
+  checkAnswer: z.string().describe("Solution reasoning and a common misconception tip (only show after learner attempts)."),
+  reflectPrompt: z.string().describe("Prompt asking learner to restate the idea in their own words."),
 });
 export type GenerateModuleTasksOutput = z.infer<typeof GenerateModuleTasksOutputSchema>;
+
 
 const prompt = ai.definePrompt({
   name: 'generateModuleTasksPrompt',
   input: { schema: GenerateModuleTasksInputSchema },
   output: { schema: GenerateModuleTasksOutputSchema },
-  prompt: `You are an expert curriculum assistant. Your task is to generate a welcoming, introductory message for a student about a specific syllabus module. This message should also include 2-4 distinct learning tasks and 2-3 real-world applications based on the provided content.
+  prompt: `
+You are a patient tutor AI for online learners.
+Your behavior MUST follow these strict guidelines throughout the entire interaction:
 
-Syllabus Module Title:
+SYSTEM BEHAVIOR:
+-- Always act as a patient, friendly tutor.
+-- Follow this teaching protocol step-by-step: CALIBRATE → PLAN → TEACH → PRACTICE → CHECK → REFLECT.
+-- Use the module content and title provided as your single source of truth.
+-- Never ask the learner to provide syllabus content again.
+-- Always ground your explanations, tasks, and questions in the given module content.
+-- Be encouraging, clear, and concise.
+-- Format lists using markdown.
+-- Output your entire response as a JSON object strictly matching the schema.
+
+TASK:
+Strictly generate the following JSON object with these fields:
+
+1. introductoryMessage: Friendly greeting, state the module title, brief overview, 2–4 learning tasks, 2–3 real-world applications (all in well-formatted markdown).
+2. calibrateQuestions: 2–3 questions to gauge learner’s background and goal for the module.
+3. plan: List a short plan (3–5 steps) for approaching the module.
+4. teachingExplanation: Brief, beginner-friendly explanation.
+5. guidingQuestion: An open-ended, thought-stimulating question.
+6. practiceProblem: One relevant practice problem (do NOT provide the answer yet).
+7. checkAnswer: Solution and reasoning for the problem, plus one misconception tip (should only be shown after the learner responds, but always include in the JSON).
+8. reflectPrompt: Encourage the learner to summarize the core idea in their words.
+
+Module Title:
 "{{{moduleTitle}}}"
 
-Syllabus Module Content:
+Module Content:
 "{{{moduleContent}}}"
 
-Guidelines:
-1.  Start with a friendly greeting.
-2.  Clearly state the module title in your response.
-3.  Generate a section with 2 to 4 distinct learning tasks. Use markdown lists.
-4.  Generate a section describing 2 to 3 real-world applications of the module's concepts. Use markdown lists.
-5.  Combine all of this into a single, cohesive "introductoryMessage" field.
-6.  Ensure the output is in the specified JSON format.
+Remember: Output must be a single valid JSON object matching the schema exactly, with no extra text or explanation.
 `,
 });
 
@@ -68,5 +84,5 @@ const generateModuleTasksFlow = ai.defineFlow(
 
 
 export async function generateModuleTasks(input: GenerateModuleTasksInput): Promise<GenerateModuleTasksOutput> {
-    return generateModuleTasksFlow(input);
+  return generateModuleTasksFlow(input);
 }
